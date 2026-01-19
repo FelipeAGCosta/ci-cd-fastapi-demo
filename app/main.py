@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import Dict, List
 from uuid import uuid4
 
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 aplicacao = FastAPI(title="API Demonstração CI/CD")
@@ -12,6 +14,15 @@ aplicacao = FastAPI(title="API Demonstração CI/CD")
 # -----------------------------
 # Modelos (Pydantic)
 # -----------------------------
+class StatusPedido(str, Enum):
+    criado = "criado"
+    pago = "pago"
+    separado = "separado"
+    enviado = "enviado"
+    entregue = "entregue"
+    cancelado = "cancelado"
+
+
 class PedidoEntrada(BaseModel):
     nome_cliente: str = Field(min_length=1, max_length=80)
     itens: List[str] = Field(min_length=1, description="Lista de itens do pedido")
@@ -20,21 +31,35 @@ class PedidoEntrada(BaseModel):
 
 class Pedido(PedidoEntrada):
     id_pedido: str
-    status: str = Field(default="criado")
+    status: StatusPedido = Field(default=StatusPedido.criado)
 
 
 class AtualizacaoStatus(BaseModel):
-    status: str = Field(min_length=1, max_length=30)
+    status: StatusPedido
 
 
 # -----------------------------
-# "Banco" em memória (simples e suficiente pra demo)
+# "Banco" em memória (demo)
 # -----------------------------
 _pedidos: Dict[str, Pedido] = {}
 
 
 # -----------------------------
-# Endpoints de saúde e demo simples
+# UX: raiz redireciona para /docs
+# -----------------------------
+@aplicacao.get("/", include_in_schema=False)
+def raiz():
+    return RedirectResponse(url="/docs")
+
+
+@aplicacao.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    # Evita log de 404 no navegador
+    return {}
+
+
+# -----------------------------
+# Endpoints básicos (saúde e demo simples)
 # -----------------------------
 @aplicacao.get("/saude")
 def verificar_saude():
@@ -57,7 +82,7 @@ def criar_pedido(pedido_entrada: PedidoEntrada):
         nome_cliente=pedido_entrada.nome_cliente,
         itens=pedido_entrada.itens,
         valor_total=pedido_entrada.valor_total,
-        status="criado",
+        status=StatusPedido.criado,
     )
     _pedidos[id_pedido] = pedido
     return pedido
@@ -77,7 +102,7 @@ def buscar_pedido(id_pedido: str):
 
 
 @aplicacao.patch("/pedidos/{id_pedido}/status", response_model=Pedido)
-def atualizar_status_pedido(id_pedido: str, dados: AtualizacaoStatus = Body(...)):
+def atualizar_status_pedido(id_pedido: str, dados: AtualizacaoStatus):
     pedido = _pedidos.get(id_pedido)
     if not pedido:
         raise HTTPException(status_code=404, detail="Pedido não encontrado")
@@ -85,3 +110,11 @@ def atualizar_status_pedido(id_pedido: str, dados: AtualizacaoStatus = Body(...)
     pedido.status = dados.status
     _pedidos[id_pedido] = pedido
     return pedido
+
+
+@aplicacao.delete("/pedidos/{id_pedido}", status_code=204)
+def deletar_pedido(id_pedido: str):
+    if id_pedido not in _pedidos:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado")
+    del _pedidos[id_pedido]
+    return None
