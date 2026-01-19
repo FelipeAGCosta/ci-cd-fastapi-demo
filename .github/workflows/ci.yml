@@ -28,6 +28,7 @@ jobs:
         run: |
           pytest
 
+      # Só publica imagem quando for push na main (em PR não publica)
       - name: Login no Docker Hub
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
