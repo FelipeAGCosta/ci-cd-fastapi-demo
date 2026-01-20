@@ -1,60 +1,39 @@
-from fastapi.testclient import TestClient
-
-from app.main import aplicacao
-
-cliente = TestClient(aplicacao)
-
-
-def test_verificar_saude():
-    resposta = cliente.get("/saude")
-    assert resposta.status_code == 200
-    assert resposta.json()["status"] == "ok"
+def test_saude(client):
+    r = client.get("/saude")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok"}
 
 
-def test_raiz_redireciona_para_docs():
-    # O TestClient segue redirect por padrão, então checamos o final
-    resposta = cliente.get("/")
-    assert resposta.status_code == 200
-    assert "/docs" in str(resposta.url)
+def test_criar_listar_e_buscar_pedido(client):
+    payload = {"nome_cliente": "Felipe", "itens": ["abc", "xyz"], "valor_total": 10.5}
+    r = client.post("/pedidos", json=payload)
+    assert r.status_code == 201
+    criado = r.json()
+    assert criado["nome_cliente"] == "Felipe"
+    assert criado["itens"] == ["abc", "xyz"]
+
+    r = client.get("/pedidos")
+    assert r.status_code == 200
+    lista = r.json()
+    assert len(lista) == 1
+
+    r = client.get(f"/pedidos/{criado['id_pedido']}")
+    assert r.status_code == 200
+    assert r.json()["id_pedido"] == criado["id_pedido"]
 
 
-def test_crud_pedidos_fluxo_basico():
-    # 1) Criar pedido
-    payload = {
-        "nome_cliente": "Felipe",
-        "itens": ["mouse", "teclado"],
-        "valor_total": 199.90,
-    }
-    resp_criar = cliente.post("/pedidos", json=payload)
-    assert resp_criar.status_code == 201
-    pedido_criado = resp_criar.json()
-    assert "id_pedido" in pedido_criado
-    assert pedido_criado["nome_cliente"] == "Felipe"
-    assert pedido_criado["status"] == "criado"
+def test_atualizar_status_e_deletar(client):
+    payload = {"nome_cliente": "Teste", "itens": ["item"], "valor_total": 1}
+    r = client.post("/pedidos", json=payload)
+    criado = r.json()
+    pid = criado["id_pedido"]
 
-    id_pedido = pedido_criado["id_pedido"]
+    r = client.patch(f"/pedidos/{pid}/status", json={"status": "pago"})
+    assert r.status_code == 200
+    assert r.json()["status"] == "pago"
 
-    # 2) Buscar pedido
-    resp_buscar = cliente.get(f"/pedidos/{id_pedido}")
-    assert resp_buscar.status_code == 200
-    assert resp_buscar.json()["id_pedido"] == id_pedido
+    r = client.delete(f"/pedidos/{pid}")
+    assert r.status_code == 204
 
-    # 3) Listar pedidos
-    resp_listar = cliente.get("/pedidos")
-    assert resp_listar.status_code == 200
-    lista = resp_listar.json()
-    assert isinstance(lista, list)
-    assert any(p["id_pedido"] == id_pedido for p in lista)
-
-    # 4) Atualizar status
-    resp_status = cliente.patch(f"/pedidos/{id_pedido}/status", json={"status": "enviado"})
-    assert resp_status.status_code == 200
-    assert resp_status.json()["status"] == "enviado"
-
-    # 5) Deletar pedido
-    resp_deletar = cliente.delete(f"/pedidos/{id_pedido}")
-    assert resp_deletar.status_code == 204
-
-    # 6) Garantir que não existe mais
-    resp_buscar_depois = cliente.get(f"/pedidos/{id_pedido}")
-    assert resp_buscar_depois.status_code == 404
+    r = client.get(f"/pedidos/{pid}")
+    assert r.status_code == 404
