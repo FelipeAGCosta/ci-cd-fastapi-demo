@@ -52,7 +52,7 @@ Acesse:
 - http://localhost:8003/docs
 
 Por que -p 8003:8000?
-Dentro do container a API roda na porta 8000 (padrão).
+Pois dentro do container a API roda na porta 8000 (padrão).
 No seu PC você acessa pela 8003.
 Isso “mapeia” 8003 (host) → 8000 (container).
 
@@ -80,7 +80,7 @@ A cada push/PR na main, o workflow executa:
 
 - latest
 
-- <sha-do-commit>
+- `<sha-do-commit>`
 
 # 💼 Por que isso importa em ambiente real?
 - Qualidade: testes automáticos evitam regressões e falhas em produção
