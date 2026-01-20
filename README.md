@@ -19,6 +19,20 @@ Além disso, a aplicação está publicada em produção (Render).
 - Publicação de imagem no Docker Hub (tag `latest` + tag por commit)
 - Deploy em produção no Render (build via Dockerfile)
 
+## 📸 Evidências (CI/CD e Deploy)
+
+### ✅ GitHub Actions (pipeline verde)
+<img src="docs/img/actions-sucesso.png" alt="GitHub Actions - pipeline verde" width="420">
+
+### 🐳 Docker Hub (tags `latest` + SHA do commit)
+<img src="docs/img/dockerhub-tags.png" alt="Docker Hub - tags" width="420">
+
+### 🌐 Render (serviço em produção / Live)
+<img src="docs/img/render-live.png" alt="Render - live" width="420">
+
+### 📚 Swagger (endpoints disponíveis)
+<img src="docs/img/swagger-endpoints.png" alt="Swagger - endpoints" width="420">
+
 ## 🚀 Endpoints principais
 - `GET /` → redireciona para `/docs`
 - `GET /saude` → verifica se a API está respondendo
@@ -42,7 +56,7 @@ Acesse:
 
 - http://127.0.0.1:8003/docs
 
-# 🐳 Rodar com Docker (build local)
+## 🐳 Rodar com Docker (build local)
 ```bash
 docker build -t ci-cd-fastapi-demo:dev .
 docker run --rm -p 8003:8000 ci-cd-fastapi-demo:dev
@@ -61,13 +75,13 @@ Se a porta 8003 estiver ocupada:
 docker run --rm -p 8004:8000 ci-cd-fastapi-demo:dev
 ```
 
-# 📦 Rodar a imagem do Docker Hub (sem build)
+## 📦 Rodar a imagem do Docker Hub (sem build)
 ```bash 
 docker pull felipeagcosta/ci-cd-fastapi-demo:latest
 docker run --rm -p 8003:8000 felipeagcosta/ci-cd-fastapi-demo:latest
 ```
 
-# ⚙️ CI/CD (GitHub Actions)
+## ⚙️ CI/CD (GitHub Actions)
 A cada push/PR na main, o workflow executa:
 
 1. Instala dependências
@@ -82,7 +96,7 @@ A cada push/PR na main, o workflow executa:
 
 - `<sha-do-commit>`
 
-# 💼 Por que isso importa em ambiente real?
+## 💼 Por que isso importa em ambiente real?
 - Qualidade: testes automáticos evitam regressões e falhas em produção
 
 - Reprodutibilidade: Docker padroniza o ambiente (sem “na minha máquina funciona”)
