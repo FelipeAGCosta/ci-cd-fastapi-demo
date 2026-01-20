@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Dict, List
 from uuid import uuid4
 
-from fastapi import Body, Depends, FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
