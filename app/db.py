@@ -6,7 +6,19 @@ from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
+def normalizar_url_banco(url: str) -> str:
+    """
+    Render costuma fornecer postgresql://...
+    Para psycopg3 + SQLAlchemy, preferimos postgresql+psycopg://...
+    """
+    if url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql+psycopg://", 1)
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
+
+
+DATABASE_URL = normalizar_url_banco(os.getenv("DATABASE_URL", "sqlite:///./app.db"))
 
 _connect_args = {}
 if DATABASE_URL.startswith("sqlite"):

@@ -20,6 +20,12 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Rodar migrations (Alembic)
+        env:
+          DATABASE_URL: sqlite:///./ci_test.db
+        run: |
+          alembic upgrade head
+
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
