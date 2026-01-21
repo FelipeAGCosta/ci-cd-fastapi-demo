@@ -5,8 +5,9 @@ import sys
 from logging.config import fileConfig
 from pathlib import Path
 
-from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+from alembic import context
 
 # --------------------------------------------------------------------------------------
 # Garante que a raiz do projeto esteja no PYTHONPATH (para permitir: from app.models import Base)

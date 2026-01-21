@@ -2,13 +2,12 @@ name: CI/CD - Testes, Lint, Build e Push Docker
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   pull_request:
-    branches: ["main"]
+    branches: [ "main" ]
 
 jobs:
-  quality_gate:
-    name: Quality Gate (ruff + tests + coverage)
+  quality-gate:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,59 +18,52 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-
-      - name: Rodar migrations (Alembic)
-        env:
-          DATABASE_URL: sqlite:///./ci_test.db
-        run: |
-          alembic upgrade head
+          cache: "pip"
 
       - name: Instalar dependências
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff pytest pytest-cov
+
+      - name: Rodar migrations (Alembic)
+        env:
+          # Mantém o CI simples (não depende de Postgres aqui)
+          DATABASE_URL: "sqlite:///./app.db"
+          # Garante que o `import app...` funcione no runner
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          python -m alembic upgrade head
 
       - name: Lint (ruff)
         run: |
-          python -m ruff check .
+          ruff check .
 
       - name: Testes + Cobertura
         run: |
-          python -m pytest --cov=app --cov-report=term-missing --cov-fail-under=70
+          pytest --cov=app --cov-report=term-missing --cov-fail-under=80
 
-  build_push:
-    name: Build e Push Docker Hub
-    needs: [quality_gate]
+  build-and-push:
+    needs: quality-gate
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Buildx
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login Docker Hub
+      - name: Login no Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Gerar tags/labels
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: felipeagcosta/ci-cd-fastapi-demo
-          tags: |
-            type=raw,value=latest
-            type=sha,format=long
-
-      - name: Build e Push
+      - name: Build e Push (latest + sha)
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            felipeagcosta/ci-cd-fastapi-demo:latest
+            felipeagcosta/ci-cd-fastapi-demo:${{ github.sha }}
