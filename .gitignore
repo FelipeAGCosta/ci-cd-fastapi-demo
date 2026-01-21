@@ -212,3 +212,19 @@ secrets.*
 
 # Docker (raramente aparece, mas se aparecer não tem por que versionar)
 .docker/
+
+# ambiente / caches
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# bancos locais
+*.db
+*.sqlite3
