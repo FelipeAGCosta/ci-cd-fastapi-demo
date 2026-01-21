@@ -9,11 +9,11 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
-# --------------------------------------------------------------------------------------
-# Garante que a raiz do projeto esteja no PYTHONPATH (para permitir: from app.models import Base)
-# --------------------------------------------------------------------------------------
-BASE_DIR = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(BASE_DIR))
+# -------------------------------------------------------------------
+# Garante que a raiz do projeto esteja no PYTHONPATH (pra achar "app")
+# -------------------------------------------------------------------
+ROOT_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT_DIR))
 
 from app.models import Base  # noqa: E402
 
@@ -22,37 +22,31 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
 
-
-def get_url() -> str:
-    """
-    Prioriza DATABASE_URL do ambiente.
-    Render costuma fornecer postgresql:// ou até postgres://
-    Ajustamos para SQLAlchemy + psycopg3: postgresql+psycopg://
-    """
-    url = os.getenv("DATABASE_URL")
-    if not url:
-        # fallback local (se você quiser)
-        return "sqlite:///./app.db"
-
+def normalizar_url_banco(url: str) -> str:
+    # Render pode fornecer postgres:// ou postgresql://
+    # Com psycopg3 + SQLAlchemy, preferimos postgresql+psycopg://
     if url.startswith("postgres://"):
         return url.replace("postgres://", "postgresql+psycopg://", 1)
-
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+psycopg://", 1)
-
     return url
 
 
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    config.set_main_option("sqlalchemy.url", normalizar_url_banco(database_url))
+
+target_metadata = Base.metadata
+
+
 def run_migrations_offline() -> None:
-    url = get_url()
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        compare_type=True,
     )
 
     with context.begin_transaction():
@@ -60,21 +54,14 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    configuration = config.get_section(config.config_ini_section) or {}
-    configuration["sqlalchemy.url"] = get_url()
-
     connectable = engine_from_config(
-        configuration,
+        config.get_section(config.config_ini_section) or {},
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata,
-            compare_type=True,
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
